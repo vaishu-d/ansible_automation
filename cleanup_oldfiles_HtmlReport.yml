@@ -1,0 +1,98 @@
+---
+-  name: Clean up old files and send email notification
+   hosts: all
+   become: yes
+   vars:
+     clean_file_path: /tmp/testbackup/
+     age_file: 1d
+     email_to: vaishu0301@outlook.com
+     email_subject: "File CleanUp Notification"
+     email_body_content: |
+       The below files are deleted as per the clean up process:
+       Directory: "{{ clean_file_path }}"
+       Files Removed: {{removed_files}}
+
+   tasks:
+     - name: Find given directory using pattern
+       ansible.builtin.find:
+         paths: "{{ clean_file_path }}"
+         pattern: "config*"
+         file_type: directory
+         recurse: yes
+       register: old_files
+
+    
+     - name: Find files inside the directory
+       ansible.builtin.find:
+          paths: "{{ item.path }}"
+          file_type: file
+          age: "{{age_file}}"
+          recurse: yes
+       with_items: "{{old_files.files}}"
+       register: found_files
+   
+     - name: Extract file paths
+       set_fact:
+         file_paths: "{{ found_files.results | map(attribute='files') | sum(start=[]) | map(attribute='path') | list }}"
+
+     
+     
+     - name: Delete the files
+       ansible.builtin.file:
+         path: "{{ item }}"
+         state: absent
+       loop: "{{ file_paths }}"
+       when: file_paths | length > 0
+
+     - name: Notify User
+       ansible.builtin.debug:
+         msg: " Server Name: {{ansible_hostname}}
+                Deleted files info: {{ file_paths if file_paths | length > 0 else 'No file exist in the directory to delete'}}"
+
+     - name: Format the deleted files list for email
+       set_fact:
+         email_body: |
+          <html>
+          <head></head>
+          <body>
+            <h2>Deleted Files Report</h2>
+            <table border="1">
+              <tr>
+                <th>Server Name</th>
+                <th>Deleted Files</th>
+              </tr>
+              {% for server in ansible_play_hosts %}
+              
+              <tr>
+                <td>{{ ansible_hostname }}</td>
+                <td>
+                  {% if file_paths | length > 0 %}
+                    <ul>
+                      {% for file in file_paths %}
+                        <li>{{ file }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    No files found to delete.
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </table>
+          </body>
+          </html>
+       when: file_paths | length > 0
+
+     
+     - name: Write the HTML report to a file
+       ansible.builtin.copy:
+         dest: "/tmp/deleted_files_report.html"
+         content: "{{ email_body }}"
+         mode: '0644'
+       delegate_to: localhost
+       become : false  ##This ensures that the task is not attempted with sudo, which is the likely cause of the error. We don't need elevated privileges to write a file to a normal location on your local machine, so become: false ensures that Ansible doesn't try to escalate privileges.
+                       ##{"msg": "Failed to get information on remote file (/tmp/deleted_files_report.html): sudo: a password is required
+       when: file_paths | length > 0    
+    
+
+      

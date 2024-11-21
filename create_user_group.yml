@@ -1,0 +1,36 @@
+---
+-  name: Create User & Group ,Add User to that group and Verify login
+   hosts: node1
+   become: yes
+   gather_facts: true
+   vars_files: /home/honest/ansiblepoc/node2vaishupass.yml
+   tasks:
+   -  name: Create Group
+      ansible.builtin.group:
+        name: testgroup
+        state: present
+        
+      
+   -  name: Check if user exits, if not create a new user
+      ansible.builtin.user:
+        name: vaishu
+        comment: VAISHU D
+        password: "{{'cloud@123' | password_hash('sha512')}}"
+        shell: /bin/bash
+        group: testgroup
+        create_home: yes
+        state: present
+   
+   -  name: verify user login
+      ansible.builtin.command: whoami
+      become: true
+      become_user: vaishu
+      #become_method: sudo
+      vars:
+        ansible_become_pass: "{{node1}}"
+      register: consoleoutput
+   -  name: Disply the output of manage node to verify login
+      debug:
+        var: consoleoutput    
+        
+             

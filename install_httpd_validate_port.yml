@@ -1,0 +1,35 @@
+---
+-  name : Install Http and Verify the listening port
+   hosts: all
+   become: true
+   gather_facts: true
+   tasks:
+     - name: Install Httpd
+       apt:
+         name: apache2
+         state: present
+         update_cache: yes
+       register: install_apacheop
+     
+     - name: Check if apache is listening on port 80
+       command: grep -i "^Listen 80" /etc/apache2/ports.conf
+       changed_when: false
+       when: install_apacheop.failed == false
+       register: apache_port_check
+     
+     - name: Restart Apache if port is 80
+       service:
+         name: apache2
+         state: started
+       when: "'Listen 80' in apache_port_check.stdout"
+       register: apache_status
+     
+     -  name: debug
+        debug:
+          msg: "Server Name: {{ ansible_hostname }}
+                Installation of Apache Status: {{ 'Successful' if install_apacheop.failed == false else 'Failed'}}
+                Apache Port No:{{ apache_port_check.stdout }}
+                Apache Service Status:{{apache_status.state}}"
+           
+
+      

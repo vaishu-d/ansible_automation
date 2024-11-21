@@ -1,0 +1,35 @@
+---
+- name: Update Repository and Security Patch
+  hosts: node2
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Back up the /etc directory
+      ansible.builtin.copy:
+        src: /etc/
+        dest: /tmp/testbackup/{{inventory_hostname}}
+        remote_src: yes ##means that the file or directory you want to copy is already present on the remote machine, and you want to copy it to another location on the same remote machine (or to another remote host).
+    - name: upgrade repository if it is ubuntu
+      apt:
+        update_cache: yes
+      when: ansible_facts.distribution == "Ubuntu"
+    
+    - name: Apply security updates (Ubuntu)
+      shell: apt-get upgrade -y --with-new-pkgs --only-upgrade
+      when: ansible_facts.distribution == "Ubuntu"
+      register: patch_result_ubuntu
+      failed_when: patch_result_ubuntu.rc != 0
+    
+    - name: upgrade repository if it is Rhel
+      yum:
+        update_cache: yes
+      when: ansible_facts.distribution == "RedHat"
+    - name: Debug the output
+      debug:
+        msg: "Server Name: {{ ansible_hostname }}
+                OS Name : {{ ansible_facts.distribution }}
+                Security Patch Update Result:{{ patch_result_ubuntu }}
+                "
+    
+    
+    

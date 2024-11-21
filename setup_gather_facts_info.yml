@@ -1,0 +1,19 @@
+---
+- name: How to use gather facts and setup module
+  hosts: node1
+  gather_facts: yes ## This enables gathering of facts automatically by default
+  tasks:
+    - name: print all gathered facts
+      debug:
+        var: ansible_facts.distribution  ##It will the OS Name
+        #var: ansible_facts
+- name: Gather only network related facts ##without gather_facts we are using setup module to extract the systemdata
+  hosts: node2
+  gather_facts: no
+  tasks:
+    - name: Gather network fatcs
+      setup:
+        filter: memory_mb
+    - name: Print network facts
+      debug:
+        var: ansible_facts         

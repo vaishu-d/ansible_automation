@@ -1,0 +1,35 @@
+---
+- name: backup the config file
+  hosts: all
+  become: yes
+  gather_facts: true
+  vars:
+    backup_dir: "/tmp/testbackup/config_{{ansible_date_time.iso8601}}"
+    loop_variable: 
+       - /etc/ucf.conf
+       - /etc/xattr.conf
+  tasks:
+    - name: create backup directory on target node
+      ansible.builtin.file:
+        path: "{{backup_dir}}"
+        state: directory
+        mode: '0755'
+    - name: Debug loop variable
+      ansible.builtin.debug:
+        msg:  "Taking backup from {{ item }} and copy to {{ backup_dir}}" 
+      loop: "{{ loop_variable }}"   
+    
+    - name: copy config files to backup directory for backup
+      ansible.builtin.copy:
+        src: "{{item}}"
+        dest: "{{backup_dir}}" 
+      loop: "{{ loop_variable }}"
+      #loop:
+      # - /etc/ucf.conf
+      # - /etc/xattr.conf
+       
+        
+        
+      
+    
+           
