@@ -13,9 +13,9 @@
       
    -  name: Check if user exits, if not create a new user
       ansible.builtin.user:
-        name: vaishu
-        comment: VAISHU D
-        password: "{{'cloud@123' | password_hash('sha512')}}"
+        name: testuser
+        comment: TestUser
+        password: "{{'XXXXXX' | password_hash('sha512')}}"
         shell: /bin/bash
         group: testgroup
         create_home: yes
@@ -24,7 +24,7 @@
    -  name: verify user login
       ansible.builtin.command: whoami
       become: true
-      become_user: vaishu
+      become_user: testuser
       #become_method: sudo
       vars:
         ansible_become_pass: "{{node1}}"
